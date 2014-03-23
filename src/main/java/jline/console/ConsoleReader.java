@@ -483,6 +483,17 @@ public class ConsoleReader
         return promptLen + buf.getCursor();
     }
 
+    int wcswidth(String s) {
+        return CharacterWidthUtil.wcswidth(s, CharacterWidthUtil.ISO_CONTROL_IGNORE);
+    }
+    
+    /** get cursor's position in unit of screen cells.
+     *
+     */
+    int getCursorCol() {
+        return wcswidth(stripAnsi(this.prompt)) + wcswidth(buf.upToCursor());
+    }
+    
     /**
      * Returns the text after the last '\n'.
      * prompt is returned if no '\n' characters are present.
@@ -819,7 +830,7 @@ public class ConsoleReader
             if (terminal.hasWeirdWrap()) {
                 // need to determine if wrapping will occur:
                 int width = terminal.getWidth();
-                int pos = getCursorPosition();
+                int pos = getCursorCol();
                 for (int i = 0; i < chars.length; i++) {
                     print(chars[i]);
                     if ((pos + i + 1) % width == 0) {
@@ -844,7 +855,7 @@ public class ConsoleReader
             // best guess on whether the cursor is in that weird location...
             // Need to do this without calling ansi cursor location methods
             // otherwise it breaks paste of wrapped lines in xterm.
-            if (getCursorPosition() > 0 && (getCursorPosition() % width == 0)
+            if (getCursorCol() > 0 && (getCursorCol() % width == 0)
                     && buf.getCursor() == buf.length() && clear == 0) {
                 // the following workaround is reverse-engineered from looking
                 // at what bash sent to the terminal in the same situation
@@ -877,7 +888,8 @@ public class ConsoleReader
 
         if (terminal.isAnsiSupported()) {
             int width = terminal.getWidth();
-            int screenCursorCol = getCursorPosition() + delta;
+            int screenCursorCol = 
+                getCursorCol() + wcswidth(buf.substring(buf.getCursor(), buf.getCursor() + delta));
             // clear current line
             printAnsiSequence("K");
             // if cursor+num wraps, then we need to clear the line(s) below too
@@ -915,7 +927,7 @@ public class ConsoleReader
         if (num == 0) return;
         if (terminal.isAnsiSupported()) {
             int width = getTerminal().getWidth();
-            int cursor = getCursorPosition();
+            int cursor = getCursorCol();
             int realCursor = cursor + num;
             int realCol  = realCursor % width;
             int newCol = cursor % width;
@@ -957,10 +969,10 @@ public class ConsoleReader
         int count = 0;
 
         int termwidth = getTerminal().getWidth();
-        int lines = getCursorPosition() / termwidth;
+        int lines = getCursorCol() / termwidth;
         count = moveCursor(-1 * num) * -1;
         buf.delete(buf.getCursor(), buf.getCursor() + count);
-        if (getCursorPosition() / termwidth != lines) {
+        if (getCursorCol() / termwidth != lines) {
             if (terminal.isAnsiSupported()) {
                 // debug("doing backspace redraw: " + getCursorPosition() + " on " + termwidth + ": " + lines);
                 printAnsiSequence("K");
@@ -1984,7 +1996,7 @@ public class ConsoleReader
                 back(Math.abs(where));
             } else {
                 int width = getTerminal().getWidth();
-                int cursor = getCursorPosition();
+                int cursor = getCursorCol();
                 int oldLine = (cursor - where) / width;
                 int newLine = cursor / width;
                 if (newLine > oldLine) {
@@ -2089,7 +2101,7 @@ public class ConsoleReader
         // to cancel based on what out current cursor position is
         if (c == 9) {
             int tabStop = 8; // will this ever be different?
-            int position = getCursorPosition();
+            int position = getCursorCol();
 
             return tabStop - (position % tabStop);
         }
