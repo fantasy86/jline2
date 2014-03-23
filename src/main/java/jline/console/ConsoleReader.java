@@ -478,9 +478,15 @@ public class ConsoleReader
         return true;
     }
 
+    int wcswidth(String s) {
+        return CharacterWidthUtil.wcswidth(s, CharacterWidthUtil.ISO_CONTROL_IGNORE);
+    }
+
+    /** get cursor's position in unit of screen cells.
+     *
+     */
     int getCursorPosition() {
-        // FIXME: does not handle anything but a line with a prompt absolute position
-        return promptLen + buf.cursor;
+        return wcswidth(stripAnsi(this.prompt)) + wcswidth(buf.upToCursor());
     }
 
     /**
@@ -878,7 +884,7 @@ public class ConsoleReader
 
         if (terminal.isAnsiSupported()) {
             int width = terminal.getWidth();
-            int screenCursorCol = getCursorPosition() + delta;
+            int screenCursorCol = getCursorPosition() + wcswidth(buf.buffer.substring(buf.cursor, buf.cursor + delta));
             // clear current line
             printAnsiSequence("K");
             // if cursor+num wraps, then we need to clear the line(s) below too
