@@ -21,9 +21,9 @@ public class CursorBuffer
 {
     private boolean overTyping = false;
 
-    public int cursor = 0;
+    private int cursor = 0;
 
-    public final StringBuilder buffer = new StringBuilder();
+    private final StringBuilder buffer = new StringBuilder();
     
     public CursorBuffer copy () {
         CursorBuffer that = new CursorBuffer();
@@ -46,6 +46,55 @@ public class CursorBuffer
         return buffer.length();
     }
 
+    // TODO convert char idx to cell coord
+    public int getCursor() {
+        return cursor;
+    }
+    
+    public void setCursor(int pos) {
+        cursor = pos;
+    }
+    
+    public void advanceCursor(int d) {
+        cursor += d;
+    }
+    
+    public char charAt(int idx) {
+        return buffer.charAt(idx);
+    }
+    
+    public String substring(int start) {
+        return buffer.substring(start);
+    }
+
+    public String substring(int start, int end) {
+        return buffer.substring(start, end);
+    }
+    
+    public void delete(int start, int end) {
+        buffer.delete(start, end);
+    }
+    
+    public void setCharAt(int idx, char c) {
+        buffer.setCharAt(idx, c);
+    }
+    
+    public void deleteCharAt(int idx) {
+        buffer.deleteCharAt(idx);
+    }
+    
+    public void replace(int start, int end, String str) {
+        buffer.replace(start, end, str);
+    }
+    
+    public void append(CharSequence str) {
+        buffer.append(str);
+    }
+    
+    public void setLength(int len) {
+        buffer.setLength(len);
+    }
+    
     public char nextChar() {
         if (cursor == buffer.length()) {
             return 0;
@@ -97,12 +146,13 @@ public class CursorBuffer
     }
 
     public boolean clear() {
+        cursor = 0;
         if (buffer.length() == 0) {
             return false;
         }
 
         buffer.delete(0, buffer.length());
-        cursor = 0;
+        
         return true;
     }
 

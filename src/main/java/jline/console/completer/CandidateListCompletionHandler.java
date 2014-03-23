@@ -69,7 +69,7 @@ public class CandidateListCompletionHandler
     public static void setBuffer(final ConsoleReader reader, final CharSequence value, final int offset) throws
         IOException
     {
-        while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
+        while ((reader.getCursorBuffer().getCursor() > offset) && reader.backspace()) {
             // empty
         }
 
