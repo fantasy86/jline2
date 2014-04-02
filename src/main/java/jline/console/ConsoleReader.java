@@ -96,7 +96,7 @@ public class ConsoleReader
 
     private final Writer out;
 
-    private final CursorBuffer buf = new CursorBuffer();
+    private final CursorBuffer buf;
 
     private String prompt;
     private int    promptLen;
@@ -225,6 +225,7 @@ public class ConsoleReader
         this.appName = appName != null ? appName : "JLine";
         this.encoding = encoding != null ? encoding : Configuration.getEncoding();
         this.terminal = term != null ? term : TerminalFactory.get();
+        this.buf = new CursorBuffer(term.getWidth(), term.hasWeirdWrap());
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
         setInput( in );
 
@@ -422,7 +423,8 @@ public class ConsoleReader
 
     public void setPrompt(final String prompt) {
         this.prompt = prompt;
-        this.promptLen = ((prompt == null) ? 0 : stripAnsi(lastLine(prompt)).length());
+        this.promptLen = ((prompt == null) ? 0 : CharacterWidthUtil.wcswidth(stripAnsi(lastLine(prompt))));
+        buf.setPrefixWidth(this.promptLen);
     }
 
     public String getPrompt() {
@@ -478,22 +480,6 @@ public class ConsoleReader
         return true;
     }
 
-    int getCursorPosition() {
-        // FIXME: does not handle anything but a line with a prompt absolute position
-        return promptLen + buf.getCursor();
-    }
-
-    int wcswidth(String s) {
-        return CharacterWidthUtil.wcswidth(s, CharacterWidthUtil.ISO_CONTROL_IGNORE);
-    }
-    
-    /** get cursor's position in unit of screen cells.
-     *
-     */
-    int getCursorCol() {
-        return wcswidth(stripAnsi(this.prompt)) + wcswidth(buf.upToCursor());
-    }
-    
     /**
      * Returns the text after the last '\n'.
      * prompt is returned if no '\n' characters are present.
@@ -524,7 +510,7 @@ public class ConsoleReader
     }
 
     /**
-     * Move the cursor position to the specified absolute index.
+     * Move the cursor position to the specified absolute character index.
      */
     public final boolean setCursorPosition(final int position) throws IOException {
         if (position == buf.getCursor()) {
@@ -1952,6 +1938,22 @@ public class ConsoleReader
         redrawLine();
     }
 
+    private void doOutputAction(OutputAction action) {
+        switch (action.type) {
+            case CURSOR_MOVE:
+                moveInternal(action.offset);
+                break;
+            case APPEND:
+                putString(new String(action.printing));
+                break;
+            case REDRAW:
+                redraw();
+                break;
+            default:
+                throw new IllegalArgumentException("unknown output action type")
+        }
+    }
+    
     /**
      * Move the cursor <i>where</i> characters.
      *
@@ -1976,7 +1978,7 @@ public class ConsoleReader
             where = buf.length() - buf.getCursor();
         }
 
-        moveInternal(where);
+        doOutputAction(buf.moveCursor(where));
 
         return where;
     }
@@ -1986,23 +1988,22 @@ public class ConsoleReader
      *
      * @param where the number of characters to move to the right or left.
      */
-    private void moveInternal(final int where) throws IOException {
+    private void moveInternal(int col, final int where) throws IOException {
         // debug ("move cursor " + where + " ("
         // + buf.getCursor() + " => " + (buf.getCursor() + where) + ")");
-        buf.advanceCursor(where);
-
+        
         if (terminal.isAnsiSupported()) {
             if (where < 0) {
                 back(Math.abs(where));
             } else {
                 int width = getTerminal().getWidth();
-                int cursor = getCursorCol();
-                int oldLine = (cursor - where) / width;
-                int newLine = cursor / width;
+                int col = buf.getCursorCol();
+                int oldLine = (col - where) / width;
+                int newLine = col / width;
                 if (newLine > oldLine) {
                     printAnsiSequence((newLine - oldLine) + "B");
                 }
-                printAnsiSequence(1 +(cursor % width) + "G");
+                printAnsiSequence(1 +(col % width) + "G");
             }
 //            flush();
             return;
