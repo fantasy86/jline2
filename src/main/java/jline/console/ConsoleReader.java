@@ -924,10 +924,12 @@ public class ConsoleReader
         if (terminal.isAnsiSupported()) {
             int width = getTerminal().getWidth();
             int cursor = getCursorPosition();
-            int realCursor = cursor + num;
+            // characters to cells
+            int cells = wcswidth(buf.buffer.substring(buf.cursor, buf.cursor + num));
+            int realCursor = cursor + cells;
             int realCol  = realCursor % width;
             int newCol = cursor % width;
-            int moveup = num / width;
+            int moveup = cells / width;
             int delta = realCol - newCol;
             if (delta < 0) moveup++;
             if (moveup > 0) {
@@ -1993,7 +1995,9 @@ public class ConsoleReader
             } else {
                 int width = getTerminal().getWidth();
                 int cursor = getCursorPosition();
-                int oldLine = (cursor - where) / width;
+                // characters to cells
+                int cells = wcswidth(buf.buffer.substring(buf.cursor - where, buf.cursor));
+                int oldLine = (cursor - cells) / width;
                 int newLine = cursor / width;
                 if (newLine > oldLine) {
                     printAnsiSequence((newLine - oldLine) + "B");
