@@ -181,14 +181,6 @@ public class WindowsTerminal
         return false;
     }
 
-    /** Disable hasWeirdWrap for Windows console.
-     *  Windows console has ENABLE_WRAP_AT_EOL_OUTPUT mode, so need not weird wrap behavior.
-     */
-    @Override
-    public boolean hasWeirdWrap() {
-        return false;
-    }
-
     @Override
     public String getOutputEncoding() {
         int codepage = getConsoleOutputCodepage();
