@@ -890,8 +890,10 @@ public class ConsoleReader
             printAnsiSequence("K");
             // if cursor+num wraps, then we need to clear the line(s) below too
             int curCol = screenCursorCol % width;
-            int endCol = (screenCursorCol + num - 1) % width;
-            int lines = num / width;
+            // XXX HACK
+            int cells = num * 2;
+            int endCol = (screenCursorCol + cells) % width;
+            int lines = cells / width;
             if (endCol < curCol) lines++;
             for (int i = 0; i < lines; i++) {
                 printAnsiSequence("B");
